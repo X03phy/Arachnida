@@ -8,6 +8,7 @@ from urllib.parse import urljoin, urlparse
 import os
 import base64
 
+
 HEADERS = {
 	"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) "
 					"AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -18,12 +19,13 @@ VALID_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".bmp")
 
 NB_DOWNLOADS = 0
 
-def download_image(img_url, path):
-	try: # requests can fail and makedirs (permissions or path)
+
+def download_image(img_url, path): # download an image from its url
+	try: # requests and response code can fail, makedirs can also fail (permissions or path)
 		response = requests.get(img_url,  headers=HEADERS, timeout=5)
 		response.raise_for_status()
 
-		filepath = os.path.join(path, urlparse(img_url).path.lstrip("/"))
+		filepath = os.path.join(path, urlparse(img_url).path.lstrip("/")) # /path/url
 		os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
 		with open(filepath, "wb") as f:
@@ -32,53 +34,92 @@ def download_image(img_url, path):
 		global NB_DOWNLOADS
 		NB_DOWNLOADS += 1
 		print(Fore.GREEN + "[+] Downloaded " + Style.RESET_ALL + filepath)
+
 	except Exception as e:
 		print(Fore.RED + "[-] Failed " + Style.RESET_ALL + f"{img_url}: {e}")
+
+
+def download_base64_image(src, path, index):
+	# "data:image/png;base64,asdasd..."
+	header, base64_data = src.split(',', 1)
+
+	mime_type = header.split(':')[1].split(';')[0] # image/png
+	extension = "." + mime_type.split('/')[-1] # .png
+	if not any(extension == ext for ext in VALID_EXTENSIONS):
+		return
+
+	filename = f"base64_{index}{extension}" # base64_0.png
+	filepath = os.path.join(path, filename) # /path/base64_0.png
+	os.makedirs(os.path.dirname(filepath), exist_ok=True) #! Can we just write path instead of os.path.dirname(filepath) ?
+
+	with open(filepath, "wb") as f:
+		f.write(base64.b64decode(base64_data)) # write in the created file the decoded base64 image
+
+	global NB_DOWNLOADS
+	NB_DOWNLOADS += 1
+	print(Fore.GREEN + "[+] Downloaded " + Style.RESET_ALL + filepath)
 
 
 def download_images_from_page(page_url, path):
 	try:
 		response = requests.get(page_url, headers=HEADERS, timeout=5)
 		response.raise_for_status()
+
 	except Exception as e:
 		print(Fore.RED + "[-] Failed " + Style.RESET_ALL + f"{page_url}: {e}")
 		return
 
-	soup = BeautifulSoup(response.text, "html.parser")
+	soup = BeautifulSoup(response.text, "html.parser") # parse HTML
 
+	index = 0
 	for img in soup.find_all("img"):
 		src = img.get("src")
-		print(src, Fore.RED + page_url + Style.RESET_ALL) # to remove
+		print(src, Fore.RED + page_url + Style.RESET_ALL) #! to remove
 		if not src:
 			continue
-		img_url = urljoin(page_url, src)
-		if not any(img_url.lower().endswith(ext) for ext in VALID_EXTENSIONS):
-			continue
-		download_image(img_url, path)
+
+		if src.startswith("data:image"): # base64 encoded image
+			download_base64_image(src, path, index)
+			index += 1
+
+		else: # url image
+			img_url = urljoin(page_url, src)
+			if not any(img_url.lower().endswith(ext) for ext in VALID_EXTENSIONS):
+				continue
+			download_image(img_url, path)
 
 
 def crawl(page_url, path, depth, max_depth, visited):
 	if depth > max_depth or page_url in visited:
 		return
+
 	visited.add(page_url)
 
 	try:
 		response = requests.get(page_url, headers=HEADERS, timeout=5)
 		response.raise_for_status()
+
 	except Exception as e:
 		print(Fore.RED + "[-] Failed " + Style.RESET_ALL + f"{page_url}: {e}")
 		return
 
 	soup = BeautifulSoup(response.text, "html.parser")
 
+	index = 0
 	for img in soup.find_all("img"):
 		src = img.get("src")
 		if not src:
 			continue
-		img_url = urljoin(page_url, src)
-		if not any(img_url.lower().endswith(ext) for ext in VALID_EXTENSIONS):
-			continue
-		download_image(img_url, path)
+
+		if src.startswith("data:image"): # base64 encoded image
+			download_base64_image(src, path, index)
+			index += 1
+
+		else: # url image
+			img_url = urljoin(page_url, src)
+			if not any(img_url.lower().endswith(ext) for ext in VALID_EXTENSIONS):
+				continue
+			download_image(img_url, path)
 
 	for link in soup.find_all("a"):
 		href = link.get("href")
