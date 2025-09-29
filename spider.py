@@ -47,7 +47,7 @@ def download_images_from_page(page_url, path):
 
 	for img in soup.find_all("img"):
 		src = img.get("src")
-		print(src, Fore.RED + page_url + Style.RESET_ALL)
+		print(src, Fore.RED + page_url + Style.RESET_ALL) # to remove
 		if not src:
 			continue
 		img_url = urljoin(page_url, src)
