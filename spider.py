@@ -16,7 +16,7 @@ HEADERS = {
 
 VALID_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".bmp")
 
-DOWNLOADS = 0
+NB_DOWNLOADS = 0
 
 def download_image(img_url, path):
 	try: # requests can fail and makedirs (permissions or path)
@@ -29,11 +29,12 @@ def download_image(img_url, path):
 		with open(filepath, "wb") as f:
 			f.write(response.content)
 
-		global DOWNLOADS
-		DOWNLOADS += 1
+		global NB_DOWNLOADS
+		NB_DOWNLOADS += 1
 		print(Fore.GREEN + "[+] Downloaded " + Style.RESET_ALL + filepath)
 	except Exception as e:
 		print(Fore.RED + "[-] Failed " + Style.RESET_ALL + f"{img_url}: {e}")
+
 
 def download_images_from_page(page_url, path):
 	try:
@@ -54,6 +55,7 @@ def download_images_from_page(page_url, path):
 		if not any(img_url.lower().endswith(ext) for ext in VALID_EXTENSIONS):
 			continue
 		download_image(img_url, path)
+
 
 def crawl(page_url, path, depth, max_depth, visited):
 	if depth > max_depth or page_url in visited:
@@ -85,6 +87,7 @@ def crawl(page_url, path, depth, max_depth, visited):
 		next_url = urljoin(page_url, href)
 		crawl(next_url, path, depth + 1, max_depth, visited)
 
+
 def arachnida():
 	parser = argparse.ArgumentParser(prog='spider.py', description='Extract all the images from a website.', epilog='Luigi\'s mansion')
 
@@ -105,8 +108,9 @@ def arachnida():
 	else:
 		download_images_from_page(args.url, args.p)
 	
-	global DOWNLOADS
-	print(Fore.GREEN + "Downloads:" + Style.RESET_ALL, DOWNLOADS)
+	global NB_DOWNLOADS
+	print(Fore.GREEN + "Downloads:" + Style.RESET_ALL, NB_DOWNLOADS)
+
 
 if __name__ == '__main__':
 	arachnida()
