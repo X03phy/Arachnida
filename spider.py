@@ -1,10 +1,89 @@
+# https://www.geeksforgeeks.org/python/implementing-web-scraping-python-beautiful-soup/
+
 import argparse
 from colorama import Fore, Style
-from bs4 import BeautifulSoup
 import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+import os
+import base64
 
-# def crawl():
+HEADERS = {
+	"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) "
+					"AppleWebKit/537.36 (KHTML, like Gecko) "
+					"Chrome/120.0 Safari/537.36"
+}
 
+VALID_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".bmp")
+
+DOWNLOADS = 0
+
+def download_image(img_url, path):
+	try: # requests can fail and makedirs (permissions or path)
+		response = requests.get(img_url,  headers=HEADERS, timeout=5)
+		response.raise_for_status()
+
+		filepath = os.path.join(path, urlparse(img_url).path.lstrip("/"))
+		os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+		with open(filepath, "wb") as f:
+			f.write(response.content)
+
+		global DOWNLOADS
+		DOWNLOADS += 1
+		print(Fore.GREEN + "[+] Downloaded " + Style.RESET_ALL + filepath)
+	except Exception as e:
+		print(Fore.RED + "[-] Failed " + Style.RESET_ALL + f"{img_url}: {e}")
+
+def download_images_from_page(page_url, path):
+	try:
+		response = requests.get(page_url, headers=HEADERS, timeout=5)
+		response.raise_for_status()
+	except Exception as e:
+		print(Fore.RED + "[-] Failed " + Style.RESET_ALL + f"{page_url}: {e}")
+		return
+
+	soup = BeautifulSoup(response.text, "html.parser")
+
+	for img in soup.find_all("img"):
+		src = img.get("src")
+		print(src, Fore.RED + page_url + Style.RESET_ALL)
+		if not src:
+			continue
+		img_url = urljoin(page_url, src)
+		if not any(img_url.lower().endswith(ext) for ext in VALID_EXTENSIONS):
+			continue
+		download_image(img_url, path)
+
+def crawl(page_url, path, depth, max_depth, visited):
+	if depth > max_depth or page_url in visited:
+		return
+	visited.add(page_url)
+
+	try:
+		response = requests.get(page_url, headers=HEADERS, timeout=5)
+		response.raise_for_status()
+	except Exception as e:
+		print(Fore.RED + "[-] Failed " + Style.RESET_ALL + f"{page_url}: {e}")
+		return
+
+	soup = BeautifulSoup(response.text, "html.parser")
+
+	for img in soup.find_all("img"):
+		src = img.get("src")
+		if not src:
+			continue
+		img_url = urljoin(page_url, src)
+		if not any(img_url.lower().endswith(ext) for ext in VALID_EXTENSIONS):
+			continue
+		download_image(img_url, path)
+
+	for link in soup.find_all("a"):
+		href = link.get("href")
+		if not href:
+			continue
+		next_url = urljoin(page_url, href)
+		crawl(next_url, path, depth + 1, max_depth, visited)
 
 def arachnida():
 	parser = argparse.ArgumentParser(prog='spider.py', description='Extract all the images from a website.', epilog='Luigi\'s mansion')
@@ -21,9 +100,13 @@ def arachnida():
 	print(Fore.GREEN + "Depth:" + Style.RESET_ALL, args.l)
 	print(Fore.GREEN + "PATH:" + Style.RESET_ALL, args.p)
 
-	response = requests.get(args.url)
-	print(response.text)
-
+	if args.r:
+		crawl(args.url, args.p, 0, args.l, set())
+	else:
+		download_images_from_page(args.url, args.p)
+	
+	global DOWNLOADS
+	print(Fore.GREEN + "Downloads:" + Style.RESET_ALL, DOWNLOADS)
 
 if __name__ == '__main__':
 	arachnida()
