@@ -96,6 +96,10 @@ def download_images_from_page(page_url, path):
 				continue
 			download_image(img_url, path)
 
+def is_valid_url(url):
+	parsed = urlparse(url)
+	return parsed.scheme in ("http", "https")
+
 
 def crawl(page_url, path, depth, max_depth, visited):
 	if depth > max_depth or page_url in visited:
@@ -129,9 +133,13 @@ def crawl(page_url, path, depth, max_depth, visited):
 
 	for link in soup.find_all('a'):
 		href = link.get('href')
-		if not href:
+		if not href or href.startswith('#'):
 			continue
+		
 		next_url = urljoin(page_url, href)
+		if not is_valid_url(next_url):
+			print(Fore.RED + '[-] Skipping non-http link:' + Style.RESET_ALL, next_url)
+			continue
 		crawl(next_url, path, depth + 1, max_depth, visited)
 
 
