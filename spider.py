@@ -10,12 +10,12 @@ import base64
 
 
 HEADERS = {
-	"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) "
-					"AppleWebKit/537.36 (KHTML, like Gecko) "
-					"Chrome/120.0 Safari/537.36"
+	'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) '
+					'AppleWebKit/537.36 (KHTML, like Gecko) '
+					'Chrome/120.0 Safari/537.36'
 }
 
-VALID_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".bmp")
+VALID_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
 
 NB_DOWNLOADS = 0
 
@@ -25,18 +25,18 @@ def download_image(img_url, path): # download an image from its url
 		response = requests.get(img_url,  headers=HEADERS, timeout=5)
 		response.raise_for_status()
 
-		filepath = os.path.join(path, urlparse(img_url).path.lstrip("/")) # /path/url
+		filepath = os.path.join(path, urlparse(img_url).path.lstrip('/')) # /path/url
 		os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
-		with open(filepath, "wb") as f:
+		with open(filepath, 'wb') as f:
 			f.write(response.content)
 
 		global NB_DOWNLOADS
 		NB_DOWNLOADS += 1
-		print(Fore.GREEN + "[+] Downloaded " + Style.RESET_ALL + filepath)
+		print(Fore.GREEN + '[+] Downloaded ' + Style.RESET_ALL + filepath)
 
 	except Exception as e:
-		print(Fore.RED + "[-] Failed " + Style.RESET_ALL + f"{img_url}: {e}")
+		print(Fore.RED + '[-] Failed ' + Style.RESET_ALL + f'{img_url}: {e}')
 
 
 def download_base64_image(src, path, index):
@@ -44,20 +44,20 @@ def download_base64_image(src, path, index):
 	header, base64_data = src.split(',', 1)
 
 	mime_type = header.split(':')[1].split(';')[0] # image/png
-	extension = "." + mime_type.split('/')[-1] # .png
+	extension = '.' + mime_type.split('/')[-1] # .png
 	if not any(extension == ext for ext in VALID_EXTENSIONS):
 		return
 
-	filename = f"base64_{index}{extension}" # base64_0.png
+	filename = f'base64_{index}{extension}' # base64_0.png
 	filepath = os.path.join(path, filename) # /path/base64_0.png
 	os.makedirs(os.path.dirname(filepath), exist_ok=True) #! Can we just write path instead of os.path.dirname(filepath) ?
 
-	with open(filepath, "wb") as f:
+	with open(filepath, 'wb') as f:
 		f.write(base64.b64decode(base64_data)) # write in the created file the decoded base64 image
 
 	global NB_DOWNLOADS
 	NB_DOWNLOADS += 1
-	print(Fore.GREEN + "[+] Downloaded " + Style.RESET_ALL + filepath)
+	print(Fore.GREEN + '[+] Downloaded ' + Style.RESET_ALL + filepath)
 
 
 def download_images_from_page(page_url, path):
@@ -66,19 +66,19 @@ def download_images_from_page(page_url, path):
 		response.raise_for_status()
 
 	except Exception as e:
-		print(Fore.RED + "[-] Failed " + Style.RESET_ALL + f"{page_url}: {e}")
+		print(Fore.RED + '[-] Failed ' + Style.RESET_ALL + f'{page_url}: {e}')
 		return
 
-	soup = BeautifulSoup(response.text, "html.parser") # parse HTML
+	soup = BeautifulSoup(response.text, 'html.parser') # parse HTML
 
 	index = 0
-	for img in soup.find_all("img"):
-		src = img.get("src")
+	for img in soup.find_all('img'):
+		src = img.get('src')
 		print(src, Fore.RED + page_url + Style.RESET_ALL) #! to remove
 		if not src:
 			continue
 
-		if src.startswith("data:image"): # base64 encoded image
+		if src.startswith('data:image'): # base64 encoded image
 			download_base64_image(src, path, index)
 			index += 1
 
@@ -100,18 +100,18 @@ def crawl(page_url, path, depth, max_depth, visited):
 		response.raise_for_status()
 
 	except Exception as e:
-		print(Fore.RED + "[-] Failed " + Style.RESET_ALL + f"{page_url}: {e}")
+		print(Fore.RED + '[-] Failed ' + Style.RESET_ALL + f'{page_url}: {e}')
 		return
 
-	soup = BeautifulSoup(response.text, "html.parser")
+	soup = BeautifulSoup(response.text, 'html.parser')
 
 	index = 0
-	for img in soup.find_all("img"):
-		src = img.get("src")
+	for img in soup.find_all('img'):
+		src = img.get('src')
 		if not src:
 			continue
 
-		if src.startswith("data:image"): # base64 encoded image
+		if src.startswith('data:image'): # base64 encoded image
 			download_base64_image(src, path, index)
 			index += 1
 
@@ -121,8 +121,8 @@ def crawl(page_url, path, depth, max_depth, visited):
 				continue
 			download_image(img_url, path)
 
-	for link in soup.find_all("a"):
-		href = link.get("href")
+	for link in soup.find_all('a'):
+		href = link.get('href')
 		if not href:
 			continue
 		next_url = urljoin(page_url, href)
@@ -130,19 +130,19 @@ def crawl(page_url, path, depth, max_depth, visited):
 
 
 def arachnida():
-	parser = argparse.ArgumentParser(prog='spider.py', description='Extract all the images from a website.', epilog='Luigi\'s mansion')
+	parser = argparse.ArgumentParser(prog='spider.py', description='Extract all the images from a website', epilog='Luigi\'s mansion')
 
-	parser.add_argument('url', help='URL to crawl.')
-	parser.add_argument('-r', action='store_true', help='Recursively downloads the images.')
-	parser.add_argument('-l', type=int, default=5, help='Maximum depth level of the recursive download.')
-	parser.add_argument('-p', default='./data/', help='The path where the downloaded files will be saved.')
+	parser.add_argument('url', help='URL to crawl')
+	parser.add_argument('-r', action='store_true', help='Recursively downloads the images')
+	parser.add_argument('-l', type=int, default=5, help='Maximum depth level of the recursive download')
+	parser.add_argument('-p', default='./data/', help='The path where the downloaded files will be saved')
 
 	args = parser.parse_args()
 
-	print(Fore.GREEN + "URL:" + Style.RESET_ALL, args.url)
-	print(Fore.GREEN + "Recursive:" + Style.RESET_ALL, args.r)
-	print(Fore.GREEN + "Depth:" + Style.RESET_ALL, args.l)
-	print(Fore.GREEN + "PATH:" + Style.RESET_ALL, args.p)
+	print(Fore.GREEN + 'URL:' + Style.RESET_ALL, args.url)
+	print(Fore.GREEN + 'Recursive:' + Style.RESET_ALL, args.r)
+	print(Fore.GREEN + 'Depth:' + Style.RESET_ALL, args.l)
+	print(Fore.GREEN + 'PATH:' + Style.RESET_ALL, args.p)
 
 	if args.r:
 		crawl(args.url, args.p, 0, args.l, set())
@@ -150,7 +150,7 @@ def arachnida():
 		download_images_from_page(args.url, args.p)
 	
 	global NB_DOWNLOADS
-	print(Fore.GREEN + "Downloads:" + Style.RESET_ALL, NB_DOWNLOADS)
+	print(Fore.GREEN + 'Downloads:' + Style.RESET_ALL, NB_DOWNLOADS)
 
 
 if __name__ == '__main__':
