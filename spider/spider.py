@@ -143,8 +143,8 @@ def crawl(page_url, path, depth, max_depth, visited):
 		crawl(next_url, path, depth + 1, max_depth, visited)
 
 
-def arachnida():
-	parser = argparse.ArgumentParser(prog='spider.py', description='Extract all the images from a website', epilog='Luigi\'s mansion')
+def spider():
+	parser = argparse.ArgumentParser(prog='spider.py', description='Extract all the images (.jpg, .jpeg, .png, .gif, .bmp) from a website', epilog='Luigi\'s mansion')
 
 	parser.add_argument('url', help='URL to crawl')
 	parser.add_argument('-r', action='store_true', help='Recursively downloads the images')
@@ -168,4 +168,4 @@ def arachnida():
 
 
 if __name__ == '__main__':
-	arachnida()
+	spider()
