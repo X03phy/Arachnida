@@ -1,5 +1,8 @@
 # https://www.geeksforgeeks.org/python/implementing-web-scraping-python-beautiful-soup/
 
+# https://www.42network.org/42-schools/\?r\=europe
+# https://42.fr/
+
 import argparse
 from colorama import Fore, Style
 import requests
@@ -7,6 +10,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 import os
 import base64
+import hashlib
 
 
 HEADERS = {
@@ -26,6 +30,8 @@ def download_image(img_url, path): # download an image from its url
 		response.raise_for_status()
 
 		filepath = os.path.join(path, urlparse(img_url).path.lstrip('/')) # /path/url
+		if os.path.isfile(filepath):
+			return
 		os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
 		with open(filepath, 'wb') as f:
@@ -39,7 +45,7 @@ def download_image(img_url, path): # download an image from its url
 		print(Fore.RED + '[-] Failed ' + Style.RESET_ALL + f'{img_url}: {e}')
 
 
-def download_base64_image(src, path, index):
+def download_base64_image(src, path):
 	# "data:image/png;base64,asdasd..."
 	header, base64_data = src.split(',', 1)
 
@@ -48,9 +54,14 @@ def download_base64_image(src, path, index):
 	if not any(extension == ext for ext in VALID_EXTENSIONS):
 		return
 
-	filename = f'base64_{index}{extension}' # base64_0.png
+	digest = hashlib.md5(base64_data.encode()).hexdigest()
+	filename = f'base64_{digest}{extension}' # base64_0.png
 	filepath = os.path.join(path, filename) # /path/base64_0.png
-	os.makedirs(os.path.dirname(filepath), exist_ok=True) #! Can we just write path instead of os.path.dirname(filepath) ?
+
+	if os.path.isfile(filepath):
+		return
+
+	os.makedirs(os.path.dirname(filepath), exist_ok=True)
 
 	with open(filepath, 'wb') as f:
 		f.write(base64.b64decode(base64_data)) # write in the created file the decoded base64 image
@@ -71,16 +82,13 @@ def download_images_from_page(page_url, path):
 
 	soup = BeautifulSoup(response.text, 'html.parser') # parse HTML
 
-	index = 0
 	for img in soup.find_all('img'):
 		src = img.get('src')
-		print(src, Fore.RED + page_url + Style.RESET_ALL) #! to remove
 		if not src:
 			continue
 
 		if src.startswith('data:image'): # base64 encoded image
-			download_base64_image(src, path, index)
-			index += 1
+			download_base64_image(src, path)
 
 		else: # url image
 			img_url = urljoin(page_url, src)
@@ -105,15 +113,13 @@ def crawl(page_url, path, depth, max_depth, visited):
 
 	soup = BeautifulSoup(response.text, 'html.parser')
 
-	index = 0
 	for img in soup.find_all('img'):
 		src = img.get('src')
 		if not src:
 			continue
 
 		if src.startswith('data:image'): # base64 encoded image
-			download_base64_image(src, path, index)
-			index += 1
+			download_base64_image(src, path)
 
 		else: # url image
 			img_url = urljoin(page_url, src)
