@@ -4,6 +4,7 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 import tkinter as tk
 from tkinter import ttk, messagebox
+from datetime import datetime
 
 
 VALID_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
@@ -49,9 +50,8 @@ def delete_metadata(image_path):
 	try:
 		img = Image.open(image_path)
 		img.info.pop("exif", None)  # delete EXIF
-		new_path = image_path.rsplit('.', 1)[0] + "_no_exif." + image_path.rsplit('.',1)[1]
-		img.save(new_path)
-		messagebox.showinfo("EXIF deleted", f"Image saved without EXIF : {new_path}")
+		img.save(image_path)
+		messagebox.showinfo("EXIF deleted", f"Image saved without EXIF : {image_path}")
 	except Exception as e:
 		messagebox.showerror("Error", str(e))
 
@@ -61,9 +61,8 @@ def modify_metadata(image_path, tag, new_value):
 		img = Image.open(image_path)
 		exif = img.getexif()
 		exif[306] = new_value # EXIF 306 DateTime
-		new_path = image_path.rsplit('.', 1)[0] + "_mod_exif." + image_path.rsplit('.',1)[1]
-		img.save(new_path, exif=exif)
-		messagebox.showinfo("EXIF modified", f"{tag} modified -> {new_path}")
+		img.save(image_path, exif=exif)
+		messagebox.showinfo("EXIF modified", f"{tag} modified")
 	except Exception as e:
 		messagebox.showerror("Error", str(e))
 
@@ -104,9 +103,9 @@ def create_interface(args):
 										command=lambda path=image: delete_metadata(path))
 				del_btn.pack(pady=5)
 
-				# burron modification EXIF
+				# button modification EXIF
 				mod_btn = tk.Button(right_frame, text="Modifier DateTime",
-										command=lambda path=image: modify_metadata(path, "DateTime", "2025:01:01 12:00:00"))
+										command=lambda path=image: modify_metadata(path, "DateTime", datetime.now().strftime("%Y:%m:%d %H:%M:%S")))
 				mod_btn.pack(pady=5)
 
 	root.mainloop()
